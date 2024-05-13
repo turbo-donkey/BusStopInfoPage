@@ -16,9 +16,9 @@
         }
         body {
                 font-family: "Orbitron", sans-serif;
-                background: linear-gradient(109.6deg, rgba(0, 0, 0, 0.93) 11.2%, rgb(63, 61, 61) 78.9%);
+                background: linear-gradient(109.6deg, rgba(10, 10, 10, 0.93) 11.2%, rgb(80, 80, 80) 78.9%);
                 color: #fff200;
-
+                display: flex;
                 justify-content: center;
                 align-items: center;
                 height: 100vh;
@@ -36,7 +36,7 @@
             table {
                 width: 1800px;
                 border-collapse: collapse;
-                font-size: 32px;
+                font-size: 34px;
             }
             th, td {
                 padding: 10px;
@@ -51,16 +51,15 @@
                 font-weight: bold;
             }
             #clock {
-            font-family: "Orbitron", sans-serif;
-            text-align: right;
-        }
+                font-family: "Orbitron", sans-serif;
+                text-align: right;
+            }
     </style>
     <script>
         let stopName; // Global variable to store stop name
         let stopDirection; // Global variable to store stop direction
         let nextRefreshTime; // Global variable to store the next API refresh time
         let processedData = []; // Global variable to store processed departure data
-        
         const endpoint = "https://lothianapi.co.uk/departureBoards/website?stops=6200238420";
         
         // Function to fetch JSON data from the API endpoint and initiate the process
@@ -214,26 +213,28 @@
     </script>
 </head>
 <body>
-    <table>
-        <colgroup><col/><col/></colgroup>
-        <tr><th style="font-size: 48px; margin-top: 0px; color: #fff200;"><b id="departureTitle">Loading...</b></th><th><div id="clock" style="font-size: 48px; margin-top: 0px; color: #fff200;"></div></th></tr>
-        <tr><td></td><td></td></tr>
-    </table>
-    <table id="departureTable">
-        <thead>
-            <tr>
-                <th>Service</th>
-                <th>Departure Time</th>
-                <th>Destination</th>
-                <th>Diverted</th>
-                <th>Part Route</th>
-                <th>Tracking</th>
-                <th>Bus ID</th>
-            </tr>
-        </thead>
-        <tbody id="departureTableBody">
-            <!-- Table rows will be dynamically populated here -->
-        </tbody>
-    </table>
+    <div class="table-container">
+        <table>
+            <colgroup><col/><col/></colgroup>
+            <tr><th style="font-size: 48px; color: #fff200;"><b id="departureTitle">Loading...</b></th><th><div id="clock" style="font-size: 48px; color: #fff200;"></div></th></tr>
+            <tr><td></td><td></td></tr>
+        </table>
+        <table id="departureTable">
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th>Departure Time</th>
+                    <th>Destination</th>
+                    <th>Diverted</th>
+                    <th>Part Route</th>
+                    <th>Tracking</th>
+                    <th>Bus ID</th>
+                </tr>
+            </thead>
+            <tbody id="departureTableBody">
+                <!-- Table rows will be dynamically populated here -->
+            </tbody>
+        </table>
+    </div>
 </body>
 </html>
