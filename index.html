@@ -10,56 +10,185 @@
         body {
             font-family: "Orbitron", sans-serif;
             background: linear-gradient(109.6deg, rgba(0, 0, 0, 0.93) 11.2%, rgb(63, 61, 61) 78.9%);
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            color: greenyellow;
             margin: 0;
         }
-        .table-container {
-            padding: 0px;
-            border-radius: 0px;
-            max-width: 1500px;
-            max-height:1000px;
+        table {
             width: 100%;
-            height: 100%;
-            text-align: right;
+            border-collapse: collapse;
         }
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
+        table, th, td {
+            border: 1px solid black;
+            padding: 8px;
         }
-        #clock {
-            font-family: "Orbitron", sans-serif;
-            font-size: 48px;
-            margin-top: 20px;
+        th {
+            background-color: grey;
         }
     </style>
+    <script>
+        let stopName; // Global variable to store stop name
+        let stopDirection; // Global variable to store stop direction
+        let nextRefreshTime; // Global variable to store the next API refresh time
+        let processedData = []; // Global variable to store processed departure data
+        
+        const endpoint = "https://lothianapi.co.uk/departureBoards/website?stops=6200238420";
+        
+        // Function to fetch JSON data from the API endpoint and initiate the process
+        function fetchDataAndProcess() {
+            fetch(endpoint, {
+                headers: {
+                    'Accept-Encoding': 'gzip, deflate',
+                    'Accept-Language': 'en-GB,en;q=0.9,en-US;q=0.8',
+                    'Cache-Control': 'max-age=0',
+                    'Content-Type': 'application/json, text/javascript, */*; q=0.01'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json(); // Parse response body as JSON
+            })
+            .then(data => {
+                // Extract stop name and direction
+                stopName = data.stop.name;
+                stopDirection = data.stop.direction;
+
+                // Update the departure board title
+                updateDepartureTitle();
+        
+                // Process the fetched JSON data
+                processedData = processJsonData(data);
+        
+                // Calculate the next API refresh time
+                calculateNextRefreshTime(processedData);
+
+                // Display the processed data and next refresh time on the console
+                console.log("Processed Data:", processedData);
+                console.log("Next Refresh Timeout (ms):", nextRefreshTime);
+        
+                // Update the table with the processed data
+                updateTable(processedData);
+        
+                // Schedule the next data fetch
+                scheduleNextFetch();
+            })
+            .catch(error => {
+                console.error('Error fetching or processing data:', error);
+                // Retry fetch in case of error (e.g., implement exponential backoff)
+                scheduleNextFetch();
+            });
+        }
+
+        // Function to update the departure board title
+        function updateDepartureTitle() {
+            const departureTitleElement = document.getElementById('departureTitle');
+            if (stopName && stopDirection) {
+                departureTitleElement.textContent = `${stopName} (${stopDirection})`;
+            } else {
+                departureTitleElement.textContent = 'Departure Board';
+            }
+        }
+        
+        // Function to process the JSON data into a standardized format
+        function processJsonData(data) {
+            const services = data.services || []; // Get services array from the data
+        
+            // Flatten the array of departures from all services
+            const allDepartures = services.flatMap(service => service.departures);
+        
+            // Sort departures by departure_time_iso (nearest departure time at the top)
+            allDepartures.sort((a, b) => {
+                const timeA = new Date(a.departure_time_iso).getTime();
+                const timeB = new Date(b.departure_time_iso).getTime();
+                return timeA - timeB;
+            });
+        
+            return allDepartures; // Return sorted departures array as processed data
+        }
+        
+        // Function to calculate the next API refresh time based on processed data
+        function calculateNextRefreshTime(processedData) {
+            if (processedData.length > 0) {
+                const closestDepartureTime = new Date(processedData[0].departure_time_iso).getTime();
+                const currentTime = Date.now();
+                nextRefreshTime = closestDepartureTime - currentTime + 5000; // Add 5 seconds buffer
+            } else {
+                // Default refresh time (e.g., if no departures are available)
+                nextRefreshTime = 60000; // Default to refresh every 60 seconds
+            }
+        }
+        
+        // Function to update the HTML table with the processed departure data
+        function updateTable(processedData) {
+            const tableBody = document.getElementById('departureTableBody');
+            tableBody.innerHTML = ''; // Clear existing table rows
+        
+            processedData.forEach(departure => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${departure.service_name}</td>
+                    <td>${formatDepartureTime(departure.departure_time_iso)}</td>
+                    <td>${departure.destination}</td>
+                    <td>${departure.diverted ? 'Yes' : 'No'}</td>
+                    <td>${departure.partRoute ? 'Yes' : 'No'}</td>
+                    <td>${departure.real_time ? 'Yes' : 'No'}</td>
+                    <td>${departure.vehicle_id}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // Function to calculate minutes until departure
+        function calculateMinutesUntilDeparture(departureTimeISO) {
+            const departureTime = new Date(departureTimeISO).getTime();
+            const currentTime = Date.now();
+            const minutesUntilDeparture = Math.round((departureTime - currentTime) / (1000 * 60));
+            return (minutesUntilDeparture >= 0) ? minutesUntilDeparture : 0;
+        }
+        
+        // Function to format departure time (e.g., "HH:mm")
+        function formatDepartureTime(departureTimeISO) {
+            const date = new Date(departureTimeISO);
+            return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        // Function to schedule the next data fetch
+        function scheduleNextFetch() {
+            // Check if nextRefreshTime is valid (not negative)
+            if (nextRefreshTime >= 0) {
+                setTimeout(() => {
+                    fetchDataAndProcess(); // Fetch data again after the calculated delay
+                }, nextRefreshTime);
+            } else {
+                // If nextRefreshTime is negative, wait for 2 seconds before retrying
+                setTimeout(() => {
+                    fetchDataAndProcess(); // Retry fetching data after a short delay
+                }, 2000); // 2 seconds delay
+            }
+        }
+        
+        // Call the fetchDataAndProcess function to initiate the process
+        fetchDataAndProcess();
+    </script>
 </head>
 <body>
-    <div class="table-container">
-        <div id="clock" style="font-size: 48px; margin-top: 20px; color: #fff200;"></div>
-        <iframe id="tableFrame" src="table.html"></iframe>
-    </div>
-
-    <script>
-        function updateClock() {
-            var now = new Date();
-            var hours = now.getHours().toString().padStart(2, '0');
-            var minutes = now.getMinutes().toString().padStart(2, '0');
-            var seconds = now.getSeconds().toString().padStart(2, '0');
-            var timeString = hours + ':' + minutes + ':' + seconds;
-            document.getElementById('clock').textContent = timeString;
-        }
-        setInterval(updateClock, 1000); // Update clock every second
-
-        // Auto-refresh the iframe (table) every 30 seconds
-        setInterval(function() {
-            var iframe = document.getElementById('tableFrame');
-            iframe.src = iframe.src; // Reload the iframe content
-        }, 30000); // 30 seconds in milliseconds
-    </script>
+    <h2 id="departureTitle">Loading...</h2>
+    <table id="departureTable">
+        <thead>
+            <tr>
+                <th>Service</th>
+                <th>Departure Time</th>
+                <th>Destination</th>
+                <th>Diverted</th>
+                <th>Part Route</th>
+                <th>Tracking</th>
+                <th>Bus ID</th>
+            </tr>
+        </thead>
+        <tbody id="departureTableBody">
+            <!-- Table rows will be dynamically populated here -->
+        </tbody>
+    </table>
 </body>
 </html>
