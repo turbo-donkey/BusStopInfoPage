@@ -46,7 +46,7 @@
             th {
                 background-color: #474747;
                 color: #fff200;
-                font-size: 48px;
+                font-size: 42px;
             }
             tr {
                 font-family: "Orbitron", sans-serif;
@@ -162,7 +162,7 @@
             processedData.forEach(departure => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${departure.service_name}</td>
+                    <td style="font-family: "Orbitron", sans-serif">${departure.service_name}</td>
                     <td>${formatDepartureTime(departure.departure_time_iso)}</td>
                     <td>${departure.destination}</td>
                     <td>${departure.diverted ? 'Yes' : 'No'}</td>
